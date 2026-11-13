@@ -1,5 +1,3 @@
-import java.util.*;
-
 /**
  * Mission 5. Dynamic programming on the tree of infections. Root the tree in person 0.
  * Input.Tree.neighbours() gives the neighbours of every person. The number of people is at most about 100, so a recursive DFS is fine here.
@@ -17,8 +15,14 @@ public class Outbreak {
      * Main calls this twice: with all costs equal to 1 (the line "Tests needed") and with the real costs ("Cheapest testing").
      */
     public static boolean[] cheapestTests(int n, int[][] nb, int[] cost) {
-        // TODO Mission 5a
-        return new boolean[n];
+        boolean[] tested = new boolean[n];
+        if (n == 0) return tested;
+
+        long[] take = new long[n];
+        long[] skip = new long[n];
+        coverCosts(0, -1, nb, cost, take, skip);
+        rebuildCover(0, -1, false, nb, take, skip, tested);
+        return tested;
     }
 
     /**
@@ -27,7 +31,46 @@ public class Outbreak {
      * Example: a line 0-1-2-3 has chain 3; a star with centre 0 and leaves 1, 2, 3 has chain 2.
      */
     public static int longestChain(int n, int[][] nb) {
-        // TODO Mission 5b
-        return -1;
+        if (n == 0) return 0;
+
+        int[] diameter = {0};
+        depth(0, -1, nb, diameter);
+        return diameter[0];
+    }
+
+    private static void coverCosts(int v, int parent, int[][] nb, int[] cost,
+                                   long[] take, long[] skip) {
+        take[v] = cost[v];
+        for (int child : nb[v]) {
+            if (child == parent) continue;
+            coverCosts(child, v, nb, cost, take, skip);
+            take[v] += Math.min(take[child], skip[child]);
+            skip[v] += take[child];
+        }
+    }
+
+    private static void rebuildCover(int v, int parent, boolean forced, int[][] nb,
+                                     long[] take, long[] skip, boolean[] tested) {
+        tested[v] = forced || take[v] < skip[v];
+        for (int child : nb[v]) {
+            if (child != parent) rebuildCover(child, v, !tested[v], nb, take, skip, tested);
+        }
+    }
+
+    private static int depth(int v, int parent, int[][] nb, int[] diameter) {
+        int longest = 0;
+        int secondLongest = 0;
+        for (int child : nb[v]) {
+            if (child == parent) continue;
+            int branch = 1 + depth(child, v, nb, diameter);
+            if (branch > longest) {
+                secondLongest = longest;
+                longest = branch;
+            } else {
+                secondLongest = Math.max(secondLongest, branch);
+            }
+        }
+        diameter[0] = Math.max(diameter[0], longest + secondLongest);
+        return longest;
     }
 }
