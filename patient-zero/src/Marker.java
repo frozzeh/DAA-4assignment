@@ -59,7 +59,51 @@ public class Marker {
      * Example: a = "ACGTAC", b = "TTACGT", k = 4: the words of a are ACGT, CGTA, GTAC; only ACGT is in b, so the answer is 1.
      */
     public static int sharedWords(String a, String b, int k) {
-        // TODO Mission 4
-        return -1;
+        if (k <= 0 || k > a.length() || k > b.length()) return 0;
+
+        long leadingPower = 1;
+        for (int i = 1; i < k; i++) leadingPower = leadingPower * BASE % MOD;
+
+        Map<Long, List<Integer>> positions = new HashMap<>();
+        long hash = firstHash(b, k);
+        for (int start = 0; start <= b.length() - k; start++) {
+            if (start > 0) hash = slide(hash, b, start, k, leadingPower);
+            positions.computeIfAbsent(hash, key -> new ArrayList<>()).add(start);
+        }
+
+        int shared = 0;
+        hash = firstHash(a, k);
+        for (int start = 0; start <= a.length() - k; start++) {
+            if (start > 0) hash = slide(hash, a, start, k, leadingPower);
+            for (int otherStart : positions.getOrDefault(hash, Collections.emptyList())) {
+                if (sameWord(a, start, b, otherStart, k)) {
+                    shared++;
+                    break;
+                }
+            }
+        }
+        return shared;
+    }
+
+    private static final long BASE = 257;
+    private static final long MOD = 1_000_000_007;
+
+    private static long firstHash(String text, int k) {
+        long hash = 0;
+        for (int i = 0; i < k; i++) hash = (hash * BASE + text.charAt(i)) % MOD;
+        return hash;
+    }
+
+    private static long slide(long hash, String text, int start, int k, long leadingPower) {
+        long outgoing = text.charAt(start - 1) * leadingPower % MOD;
+        long rest = (hash - outgoing + MOD) % MOD;
+        return (rest * BASE + text.charAt(start + k - 1)) % MOD;
+    }
+
+    private static boolean sameWord(String a, int startA, String b, int startB, int k) {
+        for (int offset = 0; offset < k; offset++) {
+            if (a.charAt(startA + offset) != b.charAt(startB + offset)) return false;
+        }
+        return true;
     }
 }
